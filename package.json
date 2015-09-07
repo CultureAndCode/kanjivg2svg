@@ -1,0 +1,27 @@
+{
+  "name": "kanjivg2svg",
+  "version": "0.1.0",
+  "description": "NodeJS fork of the kanjivg2svg Ruby script written by @Kimtaro",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matthewbadeau/kanjivg2svg.git"
+  },
+  "author": "matthewbadeau",
+  "license": "CC BY-SA 3.0",
+  "bugs": {
+    "url": "https://github.com/matthewbadeau/kanjivg2svg/issues"
+  },
+  "homepage": "https://github.com/matthewbadeau/kanjivg2svg",
+  "preferGlobal": true,
+  "bin": {
+    "kanjivg2svg": "index.js"
+  },
+  "dependencies": {
+    "commander": "^2.8.1",
+    "glob": "^5.0.14",
+    "xml2js": "^0.4.12"
+  }
+}

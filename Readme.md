@@ -1,21 +1,25 @@
 kanjivg2svg
 ===========
 
-This Ruby 1.9 script takes stroke order data from the [KanjiVG](http://kanjivg.tagaini.net/) project and outputs SVG files with special formatting.
+This is a NodeJS fork of the original Ruby 1.9 script that takes stroke order data from the [KanjiVG](http://kanjivg.tagaini.net/) project and outputs SVG files with special formatting.
 
 Usage
 -----
 
-    $ ruby kanjivg2svg.rb path/to/kanji [frames|animated|numbers]
+    $ node kanjivg2svg -d path/to/kanji/ -t [frames|animated|numbers]
 
 You can change the output type by setting the second argument. If not set it will default to 'frames'. The animated and numbers are less perfected compared to the frames output.
 
-In this repo I've included svg files generated with the 'frames' option.
+Why?
+----
+
+I'll be using this as a library in my own personal project and a NodeJS fork is required. Hopefully I'll have the willpower to finish it.
 
 License
 -------
 
 By Kim Ahlström <kim.ahlstrom@gmail.com>
+Fork by Matthew @matthewbadeau
 
 [Creative Commons Attribution-Share Alike 3.0](http://creativecommons.org/licenses/by-sa/3.0/)
 

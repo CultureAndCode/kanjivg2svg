@@ -19,6 +19,7 @@ License
 -------
 
 By Kim Ahlström <kim.ahlstrom@gmail.com>
+
 Fork by Matthew @matthewbadeau
 
 [Creative Commons Attribution-Share Alike 3.0](http://creativecommons.org/licenses/by-sa/3.0/)

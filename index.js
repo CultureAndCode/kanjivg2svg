@@ -5,8 +5,18 @@ var program = require('commander'),
     fs = require('fs'),
     xml2js = require('xml2js');
 
-var parser = new xml2js.Parser();
-var builder = new xml2js.Builder();
+var parserOptions = {
+  stripPrefix: false,
+  explicitChildren: false,
+  preserveChildrenOrder: false
+};
+var builderOptions = {
+  rootName: 'svg',
+  headless: true
+};
+
+var parser = new xml2js.Parser(parserOptions);
+var builder = new xml2js.Builder(builderOptions);
 
 program
   .version('0.0.1')
@@ -17,40 +27,62 @@ program
   .option('-t --type [type]', 'SVG type', /^(frames|animated|numbers)$/i, 'frames')
   .parse(process.argv);
 
-var buildSvgFrames = function(svg, callback){
-  callback(svg);
-}
-
-var getSvg = function(file, callback){
-  var path = program.dir + file;
-  fs.readFile(path, function(err, data){
-    var options = {
-      stripPrefix: true
-    };
-    parser.parseString(data, function(err, result){
-      callback(result);
+var Svg = {
+  buildFrames: function(svg, options, callback){
+    var height = options.height ? options.height : 109;
+    var width = options.width ? options.width: 109;
+    var paths = svg.svg.g[0].g[0].path.map(function(object){
+      var pathObject = {
+        '$' : {
+          d: object["$"].d,
+          style: "fill:none;stroke:black;stroke-width:3"
+        }
+      }
+      return pathObject;
     });
-  });
-}
+    callback({
+              '$': {
+                xmlns: 'http://www.w3.org/2000/svg',
+                height: height,
+                width: width,
+                viewBox: '0 0 ' + height + ' ' + width + ' '
+              }, 
+              path: paths });
+  },
+  getSvg: function(file, callback){
+    fs.readFile(file, function(err, data){
+      parser.parseString(data, function(err, result){
+        callback(result);
+      });
+    });
+  }
+};
 
 var options = {
   cwd: program.dir
 };
 
+var buildFrameOptions = {
+  // height: 200,
+  // width: 200
+}
+
 glob("*.svg", options, function(err, files){
-  for (file in files){
+  for (var file in files){
     if(files[file] === "05927.svg"){
       var fileName = files[file];
-      getSvg(fileName, function(svg){
-        // buildSvgFrames(svg, function(output){
-        //   console.log(output.svg.g[0]);
-        // });
-        var xml = builder.buildObject(svg);
-        fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
-          if (err) {
-          }
+      Svg.getSvg(options.cwd + fileName, function(svg){
+        Svg.buildFrames(svg, buildFrameOptions, function(data){
+          var xml = builder.buildObject(data);
+          fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
+            if (err) {
+              console.log(err);
+            }
+          });
         });
       });
     }
   }
 });
+
+module.exports = Svg;

@@ -39,10 +39,21 @@ var Svg = {
     var strokes = Svg.getPathsFromObject(svg.svg.g[0]);
     var height = options.height ? options.height : 109;
     var width = options.width ? (options.width * strokes.length): (109 * strokes.length);
+    var circle = [];
     var paths = strokes.map(function(object, index){
       var parsedPath = Svg.parseSvgPathDesc(object["$"].d);
       var markerRelPath = "M" + (parseFloat(parsedPath[0].M.x) + (options.width * index))
                           + "," + parsedPath[0].M.y;
+      circle.push({
+          '$' : {
+            cx: parseFloat(parsedPath[0].M.x) + (options.width * index),
+            cy: parsedPath[0].M.y,
+            r: 5,
+            'stroke-width': 0,
+            fill: "#FF2A00",
+            opacity: 0.7
+          }
+        });
       var curveTo = "";
       for (var path in parsedPath){
         if (parsedPath[path].c){
@@ -65,7 +76,7 @@ var Svg = {
       var pathObject = {
         '$' : {
           d: relPath,
-          style: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"
+          style: options.lineStyle
         }
       }
       return pathObject;
@@ -77,7 +88,7 @@ var Svg = {
           y1: 1,
           x2: width - 1,
           y2: height - 1,
-          style: "stroke:#ddd;stroke-width:2"
+          style: options.borderlineStyle
         }
       },
       {
@@ -86,7 +97,7 @@ var Svg = {
           y1: 1,
           x2: 1,
           y2: height - 1,
-          style: "stroke:#ddd;stroke-width:2"
+          style: options.borderlineStyle
         }
       },
       {
@@ -95,7 +106,7 @@ var Svg = {
           y1: height / 2,
           x2: width,
           y2: height / 2,
-          style: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
+          style: options.graphLineStyle
         }
       },
       {
@@ -104,7 +115,7 @@ var Svg = {
           y1: 1,
           x2: width - 1,
           y2: 1,
-          style: "stroke:#ddd;stroke-width:2"
+          style: options.borderlineStyle
         }
       },
       {
@@ -113,7 +124,7 @@ var Svg = {
           y1: height - 1,
           x2: width - 1,
           y2: height - 1,
-          style: "stroke:#ddd;stroke-width:2"
+          style: options.borderlineStyle
         }
       }
     ];
@@ -124,7 +135,7 @@ var Svg = {
           y1: 1,
           x2: (i * options.width) - (options.width / 2),
           y2: height - 1,
-          style: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
+          style: options.graphLineStyle
         }
       });
     };
@@ -135,7 +146,7 @@ var Svg = {
           y1: 1,
           x2: (i * options.width),
           y2: height - 1,
-          style: "stroke:#ddd;stroke-width:2"
+          style: options.borderlineStyle
         }
       });
     };
@@ -147,7 +158,8 @@ var Svg = {
                 viewBox: '0 0 ' + width + 'px ' + height + 'px'
               },
               line: lines,
-              path: paths
+              path: paths,
+              circle: circle
             });
   },
   parseSvgPathDesc: function(pathString){
@@ -329,7 +341,10 @@ var options = {
 
 var buildFrameOptions = {
   height: 109,
-  width: 109
+  width: 109,
+  lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
+  borderlineStyle: "stroke:#ddd;stroke-width:2",
+  graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
 }
 
 glob("*.svg", options, function(err, files){

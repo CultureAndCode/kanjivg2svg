@@ -6,13 +6,20 @@ var program = require('commander'),
     xml2js = require('xml2js');
 
 var parserOptions = {
-  stripPrefix: false,
-  explicitChildren: false,
-  preserveChildrenOrder: false
+  // xmlns: true,
+  // explicitCharkey: true,
+  // stripPrefix: false,
+  // explicitChildren: false,
+  preserveChildrenOrder: true
 };
 var builderOptions = {
   rootName: 'svg',
-  headless: true
+  headless: true,
+  doctype: {
+    ATTLIST: {
+      'kvg:element' : '#IMPLIED'
+    }
+  }
 };
 
 var parser = new xml2js.Parser(parserOptions);
@@ -29,25 +36,283 @@ program
 
 var Svg = {
   buildFrames: function(svg, options, callback){
+    var strokes = Svg.getPathsFromObject(svg.svg.g[0]);
     var height = options.height ? options.height : 109;
-    var width = options.width ? options.width: 109;
-    var paths = svg.svg.g[0].g[0].path.map(function(object){
+    var width = options.width ? (options.width * strokes.length): (109 * strokes.length);
+    var paths = strokes.map(function(object, index){
+      var parsedPath = Svg.parseSvgPathDesc(object["$"].d);
+      var markerRelPath = "M" + (parseFloat(parsedPath[0].M.x) + (options.width * index))
+                          + "," + parsedPath[0].M.y;
+      var curveTo = "";
+      for (var path in parsedPath){
+        if (parsedPath[path].c){
+          curveTo += "c" + parsedPath[path].c.dc1x + ","
+                     + parsedPath[path].c.dc1y + ","
+                     + parsedPath[path].c.dc2x + ","
+                     + parsedPath[path].c.dc2y + ","
+                     + parsedPath[path].c.dx + ","
+                     + parsedPath[path].c.dy;
+        } else if (parsedPath[path]["C"]){
+          curveTo += "C" + (parseFloat(parsedPath[path]["C"].c1x) + (options.width * index)) + ","
+                     + parsedPath[path]["C"].c1y + ","
+                     + (parseFloat(parsedPath[path]["C"].c2x) + (options.width * index)) + ","
+                     + parsedPath[path]["C"].c2y + ","
+                     + (parseFloat(parsedPath[path]["C"].x) + (options.width * index)) + ","
+                     + parsedPath[path]["C"].y;
+        } 
+      }
+      var relPath = markerRelPath + curveTo;
       var pathObject = {
         '$' : {
-          d: object["$"].d,
-          style: "fill:none;stroke:black;stroke-width:3"
+          d: relPath,
+          style: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"
         }
       }
       return pathObject;
     });
+    var lines = [
+      {
+        '$' : {
+          x1: width - 1,
+          y1: 1,
+          x2: width - 1,
+          y2: height - 1,
+          style: "stroke:#ddd;stroke-width:2"
+        }
+      },
+      {
+        '$' : {
+          x1: 1,
+          y1: 1,
+          x2: 1,
+          y2: height - 1,
+          style: "stroke:#ddd;stroke-width:2"
+        }
+      },
+      {
+        '$' : {
+          x1: 1,
+          y1: height / 2,
+          x2: width,
+          y2: height / 2,
+          style: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
+        }
+      },
+      {
+        '$' : {
+          x1: 1,
+          y1: 1,
+          x2: width - 1,
+          y2: 1,
+          style: "stroke:#ddd;stroke-width:2"
+        }
+      },
+      {
+        '$' : {
+          x1: 1,
+          y1: height - 1,
+          x2: width - 1,
+          y2: height - 1,
+          style: "stroke:#ddd;stroke-width:2"
+        }
+      }
+    ];
+    for(var i = strokes.length; i > 0; i--){
+      lines.push({
+        '$' : {
+          x1: (i * options.width) - (options.width / 2),
+          y1: 1,
+          x2: (i * options.width) - (options.width / 2),
+          y2: height - 1,
+          style: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
+        }
+      });
+    };
+    for(var i = strokes.length; i > 0; i--){
+      lines.push({
+        '$' : {
+          x1: (i * options.width),
+          y1: 1,
+          x2: (i * options.width),
+          y2: height - 1,
+          style: "stroke:#ddd;stroke-width:2"
+        }
+      });
+    };
     callback({
               '$': {
                 xmlns: 'http://www.w3.org/2000/svg',
                 height: height,
                 width: width,
-                viewBox: '0 0 ' + height + ' ' + width + ' '
-              }, 
-              path: paths });
+                viewBox: '0 0 ' + width + 'px ' + height + 'px'
+              },
+              line: lines,
+              path: paths
+            });
+  },
+  parseSvgPathDesc: function(pathString){
+    var pathDRegex = /(?=[MZLHVCSQTAmzlhvcsqta])/;
+    var pathDVal = pathString.split(pathDRegex).filter(function(n){return n});
+    var pathObject = pathDVal.map(function(value){
+      var pathDesc = value.split(/([a-zA-Z])/).filter(function(n){return n});
+      switch(pathDesc[0]){
+        case 'M': //Marker
+          var pathCoords = pathDesc[1].split(',');
+          return {
+                    M: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'm': //Marker Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { m: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'C': //Cubic Bezier Curve
+          var pathCoords = pathDesc[1].split(',');
+          return { C: {
+                    c1x: pathCoords[0],
+                    c1y: pathCoords[1],
+                    c2x: pathCoords[2],
+                    c2y: pathCoords[3],
+                    x: pathCoords[4],
+                    y: pathCoords[5],
+                    }
+                  }
+          break;
+        case 'c': //Cubic Bezier Curve Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { c: {
+                    dc1x: pathCoords[0],
+                    dc1y: pathCoords[1],
+                    dc2x: pathCoords[2],
+                    dc2y: pathCoords[3],
+                    dx: pathCoords[4],
+                    dy: pathCoords[5],
+                    }
+                  }
+          break;
+        case 'L': //Line To
+          var pathCoords = pathDesc[1].split(',');
+          return { L: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'l': //Line To Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { l: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'H': //Line To Horizontal
+          var pathCoords = pathDesc[1].split(',');
+          return { H: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'h': //Line To Horizontal Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { h: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'V': //Line To Vertical
+          var pathCoords = pathDesc[1].split(',');
+          return { V: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'v': //Line To Vertical Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { v: {
+                      x: pathCoords[0],
+                      y: pathCoords[1]
+                      }
+                 }
+          break;
+        case 'Q': //Quadratic Bezier Curve
+          var pathCoords = pathDesc[1].split(',');
+          return { Q: {
+                    c1x: pathCoords[0],
+                    c1y: pathCoords[1],
+                    x: pathCoords[2],
+                    y: pathCoords[3],
+                    }
+                  }
+          break;
+        case 'q': //Quadratic Bezier Curve Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { q: {
+                    dc1x: pathCoords[0],
+                    dc1y: pathCoords[1],
+                    dx: pathCoords[2],
+                    dy: pathCoords[3],
+                    }
+                  }
+          break;
+        case 'T': //Shorthand/Smooth Quadratic Bezier Curve
+          var pathCoords = pathDesc[1].split(',');
+          return { T: {
+                    x: pathCoords[0],
+                    y: pathCoords[1],
+                    }
+                  }
+          break;
+        case 't': //Shorthand/Smooth Quadratic Bezier Curve Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { t: {
+                    dx: pathCoords[0],
+                    dy: pathCoords[1],
+                    }
+                  }
+          break;
+        case 'S': //Shorthand/Smooth Cubic Bezier Curve
+          var pathCoords = pathDesc[1].split(',');
+          return { S: {
+                    c2x: pathCoords[0],
+                    c2y: pathCoords[1],
+                    x: pathCoords[2],
+                    y: pathCoords[3],
+                    }
+                  }
+          break;
+        case 's': //Shorthand/Smooth Cubic Bezier Curve Relative
+          var pathCoords = pathDesc[1].split(',');
+          return { s: {
+                    dc2x: pathCoords[0],
+                    dc2y: pathCoords[1],
+                    dx: pathCoords[2],
+                    dy: pathCoords[3],
+                    }
+                  }
+          break;
+        default:
+          return value;
+          break;
+      }
+    });
+    return pathObject;
+  },
+  getPathsFromObject: function(object){
+    for(value in object){
+      // console.log(object[value].length);
+    }
+    return object.g[0].path;
   },
   getSvg: function(file, callback){
     fs.readFile(file, function(err, data){
@@ -59,12 +324,12 @@ var Svg = {
 };
 
 var options = {
-  cwd: program.dir
+  cwd: './kanji/'//program.dir
 };
 
 var buildFrameOptions = {
-  // height: 200,
-  // width: 200
+  height: 109,
+  width: 109
 }
 
 glob("*.svg", options, function(err, files){

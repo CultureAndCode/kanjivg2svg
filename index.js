@@ -39,48 +39,25 @@ var Svg = {
     var strokes = Svg.getPathsFromObject(svg.svg.g[0]);
     var height = options.height ? options.height : 109;
     var width = options.width ? (options.width * strokes.length): (109 * strokes.length);
-    var circle = [];
-    var paths = strokes.map(function(object, index){
-      var parsedPath = Svg.parseSvgPathDesc(object["$"].d);
-      var markerRelPath = "M " + (parseFloat(parsedPath[0].M.x) + (options.width * index))
-                          + " " + parsedPath[0].M.y;
-      circle.push({
-          '$' : {
-            cx: parseFloat(parsedPath[0].M.x) + (options.width * index),
-            cy: parsedPath[0].M.y,
-            r: 5,
-            'stroke-width': 0,
-            fill: "#FF2A00",
-            opacity: 0.7
-          }
-        });
-      var curveTo = "";
-      for (var path in parsedPath){
-        if (parsedPath[path].c){
-          curveTo += " c " + parsedPath[path].c.dc1x + " "
-                     + parsedPath[path].c.dc1y + " "
-                     + parsedPath[path].c.dc2x + " "
-                     + parsedPath[path].c.dc2y + " "
-                     + parsedPath[path].c.dx + " "
-                     + parsedPath[path].c.dy;
-        } else if (parsedPath[path]["C"]){
-          curveTo += " C " + (parseFloat(parsedPath[path]["C"].c1x) + (options.width * index)) + " "
-                     + parsedPath[path]["C"].c1y + " "
-                     + (parseFloat(parsedPath[path]["C"].c2x) + (options.width * index)) + " "
-                     + parsedPath[path]["C"].c2y + " "
-                     + (parseFloat(parsedPath[path]["C"].x) + (options.width * index)) + " "
-                     + parsedPath[path]["C"].y;
-        } 
-      }
-      var relPath = markerRelPath + curveTo;
-      var pathObject = {
-        '$' : {
-          d: relPath,
-          style: options.lineStyle
-        }
-      }
-      return pathObject;
+    var circles = [];
+    var origPaths = strokes.map(function(object){
+      return Svg.parseSvgPathDesc(object["$"].d);
     });
+
+    var paths = [];
+    for(obj in origPaths){
+      paths.push(function(){
+        var descString = "";
+        for(str in origPaths[obj]){
+          descString += origPaths[obj][str][0] + " " + origPaths[obj][str][1].join(" ")
+        }
+        return {'$': {
+          d: descString,
+          style: options.lineStyle
+        }};
+      }());
+    };
+
     var lines = [
       {
         '$' : {
@@ -159,171 +136,38 @@ var Svg = {
               },
               line: lines,
               path: paths,
-              circle: circle
+              circle: circles
             });
   },
-  parseSvgPathDesc: function(pathString){
+  parseSvgPathDesc: function(descString){
+    // Give this arbitrary string:
+    // M19.38,48.25c1.49,0.51,5.03,0.89,7.6,0.49C41.12,46.5,63,43,77.19,42.44c2.7-0.11,4.87-0.06,7.31,0.33
+    // I need to parse it like this:
+    // { M : ['19.38','48.25'],
+    //   c : ['1.49','0.51','5.03','0.89','7.6','0.49'],
+    //   C : ['41.12','46.5','63','43','77.19','42.44'],
+    //   c : ['2.7','-0.11','4.87','-0.06','7.31','0.33']
+    // }
     var pathDRegex = /(?=[MZLHVCSQTAmzlhvcsqta])/;
-    var pathDVal = pathString.split(pathDRegex).filter(function(n){return n});
-    var pathObject = pathDVal.map(function(value){
-      var pathDesc = value.split(/([a-zA-Z])/).filter(function(n){return n});
-      switch(pathDesc[0]){
-        case 'M': //Marker
-          var pathCoords = pathDesc[1].split(',');
-          return {
-                    M: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'm': //Marker Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { m: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'C': //Cubic Bezier Curve
-          var pathCoords = pathDesc[1].split(',');
-          return { C: {
-                    c1x: pathCoords[0],
-                    c1y: pathCoords[1],
-                    c2x: pathCoords[2],
-                    c2y: pathCoords[3],
-                    x: pathCoords[4],
-                    y: pathCoords[5],
-                    }
-                  }
-          break;
-        case 'c': //Cubic Bezier Curve Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { c: {
-                    dc1x: pathCoords[0],
-                    dc1y: pathCoords[1],
-                    dc2x: pathCoords[2],
-                    dc2y: pathCoords[3],
-                    dx: pathCoords[4],
-                    dy: pathCoords[5],
-                    }
-                  }
-          break;
-        case 'L': //Line To
-          var pathCoords = pathDesc[1].split(',');
-          return { L: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'l': //Line To Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { l: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'H': //Line To Horizontal
-          var pathCoords = pathDesc[1].split(',');
-          return { H: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'h': //Line To Horizontal Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { h: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'V': //Line To Vertical
-          var pathCoords = pathDesc[1].split(',');
-          return { V: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'v': //Line To Vertical Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { v: {
-                      x: pathCoords[0],
-                      y: pathCoords[1]
-                      }
-                 }
-          break;
-        case 'Q': //Quadratic Bezier Curve
-          var pathCoords = pathDesc[1].split(',');
-          return { Q: {
-                    c1x: pathCoords[0],
-                    c1y: pathCoords[1],
-                    x: pathCoords[2],
-                    y: pathCoords[3],
-                    }
-                  }
-          break;
-        case 'q': //Quadratic Bezier Curve Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { q: {
-                    dc1x: pathCoords[0],
-                    dc1y: pathCoords[1],
-                    dx: pathCoords[2],
-                    dy: pathCoords[3],
-                    }
-                  }
-          break;
-        case 'T': //Shorthand/Smooth Quadratic Bezier Curve
-          var pathCoords = pathDesc[1].split(',');
-          return { T: {
-                    x: pathCoords[0],
-                    y: pathCoords[1],
-                    }
-                  }
-          break;
-        case 't': //Shorthand/Smooth Quadratic Bezier Curve Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { t: {
-                    dx: pathCoords[0],
-                    dy: pathCoords[1],
-                    }
-                  }
-          break;
-        case 'S': //Shorthand/Smooth Cubic Bezier Curve
-          var pathCoords = pathDesc[1].split(',');
-          return { S: {
-                    c2x: pathCoords[0],
-                    c2y: pathCoords[1],
-                    x: pathCoords[2],
-                    y: pathCoords[3],
-                    }
-                  }
-          break;
-        case 's': //Shorthand/Smooth Cubic Bezier Curve Relative
-          var pathCoords = pathDesc[1].split(',');
-          return { s: {
-                    dc2x: pathCoords[0],
-                    dc2y: pathCoords[1],
-                    dx: pathCoords[2],
-                    dy: pathCoords[3],
-                    }
-                  }
-          break;
-        default:
-          return value;
-          break;
-      }
+    var pathDVals = descString
+                      .replace(/(\-)/g, ",-") //Some negative values aren't separated from the previous value
+                      .split(pathDRegex)
+                      .filter(function(n){return n})
+                      .map(function(value){
+                            return pathDesc = value
+                                          .split(/([a-zA-Z])/)
+                                          .filter(function(n){return n});
+                            });
+    var pathObjArr = pathDVals.map(function(val){
+      var obj = [val[0], val[1].split(",")];
+      return obj;
     });
-    return pathObject;
+    return pathObjArr;
   },
   getPathsFromObject: function(object){
-    for(value in object){
-      // console.log(object[value].length);
-    }
+    // for(value in object){
+    //   console.log(object[value].length);
+    // }
     return object.g[0].path;
   },
   getSvg: function(file, callback){
@@ -336,24 +180,24 @@ var Svg = {
 };
 
 var options = {
-  cwd: './kanji/'//program.dir
+  cwd: './kanji/',//program.dir,
+  frame: {
+    height: 109,
+    width: 109,
+    rows: 1,
+    lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
+    prevStrokeLineStyle: "fill:none;stroke:#888;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
+    borderlineStyle: "stroke:#ccc;stroke-width:2",
+    graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
+  }
 };
-
-var buildFrameOptions = {
-  height: 109,
-  width: 109,
-  rows: 1,
-  lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
-  borderlineStyle: "stroke:#ddd;stroke-width:2",
-  graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
-}
 
 glob("*.svg", options, function(err, files){
   for (var file in files){
     if(files[file] === "05927.svg"){
       var fileName = files[file];
       Svg.getSvg(options.cwd + fileName, function(svg){
-        Svg.buildFrames(svg, buildFrameOptions, function(data){
+        Svg.buildFrames(svg, options.frame, function(data){
           var xml = builder.buildObject(data);
           fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
             if (err) {

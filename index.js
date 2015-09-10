@@ -42,8 +42,8 @@ var Svg = {
     var circle = [];
     var paths = strokes.map(function(object, index){
       var parsedPath = Svg.parseSvgPathDesc(object["$"].d);
-      var markerRelPath = "M" + (parseFloat(parsedPath[0].M.x) + (options.width * index))
-                          + "," + parsedPath[0].M.y;
+      var markerRelPath = "M " + (parseFloat(parsedPath[0].M.x) + (options.width * index))
+                          + " " + parsedPath[0].M.y;
       circle.push({
           '$' : {
             cx: parseFloat(parsedPath[0].M.x) + (options.width * index),
@@ -57,18 +57,18 @@ var Svg = {
       var curveTo = "";
       for (var path in parsedPath){
         if (parsedPath[path].c){
-          curveTo += "c" + parsedPath[path].c.dc1x + ","
-                     + parsedPath[path].c.dc1y + ","
-                     + parsedPath[path].c.dc2x + ","
-                     + parsedPath[path].c.dc2y + ","
-                     + parsedPath[path].c.dx + ","
+          curveTo += " c " + parsedPath[path].c.dc1x + " "
+                     + parsedPath[path].c.dc1y + " "
+                     + parsedPath[path].c.dc2x + " "
+                     + parsedPath[path].c.dc2y + " "
+                     + parsedPath[path].c.dx + " "
                      + parsedPath[path].c.dy;
         } else if (parsedPath[path]["C"]){
-          curveTo += "C" + (parseFloat(parsedPath[path]["C"].c1x) + (options.width * index)) + ","
-                     + parsedPath[path]["C"].c1y + ","
-                     + (parseFloat(parsedPath[path]["C"].c2x) + (options.width * index)) + ","
-                     + parsedPath[path]["C"].c2y + ","
-                     + (parseFloat(parsedPath[path]["C"].x) + (options.width * index)) + ","
+          curveTo += " C " + (parseFloat(parsedPath[path]["C"].c1x) + (options.width * index)) + " "
+                     + parsedPath[path]["C"].c1y + " "
+                     + (parseFloat(parsedPath[path]["C"].c2x) + (options.width * index)) + " "
+                     + parsedPath[path]["C"].c2y + " "
+                     + (parseFloat(parsedPath[path]["C"].x) + (options.width * index)) + " "
                      + parsedPath[path]["C"].y;
         } 
       }
@@ -342,6 +342,7 @@ var options = {
 var buildFrameOptions = {
   height: 109,
   width: 109,
+  rows: 1,
   lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
   borderlineStyle: "stroke:#ddd;stroke-width:2",
   graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"

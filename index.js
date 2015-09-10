@@ -37,8 +37,9 @@ program
 var Svg = {
   buildFrames: function(svg, options, callback){
     var strokes = Svg.getPathsFromObject(svg.svg.g[0]);
+    var strokeCount = strokes.length + 1;
     var height = options.height ? options.height : 109;
-    var width = options.width ? (options.width * (strokes.length + 1)): (109 * (strokes.length + 1));
+    var width = options.width ? (options.width * strokeCount): (109 * strokeCount);
     var circles = [];
     var origPaths = strokes.map(function(object){
       return Svg.parseSvgPathDesc(object["$"].d);
@@ -105,7 +106,7 @@ var Svg = {
         }
       }
     ];
-    for(var i = strokes.length; i > 0; i--){
+    for(var i = strokeCount; i > 0; i--){
       lines.push({
         '$' : {
           x1: (i * options.width) - (options.width / 2),
@@ -116,7 +117,7 @@ var Svg = {
         }
       });
     };
-    for(var i = strokes.length; i > 0; i--){
+    for(var i = strokeCount; i > 0; i--){
       lines.push({
         '$' : {
           x1: (i * options.width),
@@ -187,8 +188,8 @@ var options = {
     rows: 1,
     lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
     prevStrokeLineStyle: "fill:none;stroke:#888;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
-    borderlineStyle: "stroke:#ccc;stroke-width:2",
-    graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:3 3"
+    borderlineStyle: "stroke:#ccc;stroke-width:1",
+    graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:1 8"
   }
 };
 

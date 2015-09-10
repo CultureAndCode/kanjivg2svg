@@ -38,7 +38,7 @@ var Svg = {
   buildFrames: function(svg, options, callback){
     var strokes = Svg.getPathsFromObject(svg.svg.g[0]);
     var height = options.height ? options.height : 109;
-    var width = options.width ? (options.width * strokes.length): (109 * strokes.length);
+    var width = options.width ? (options.width * (strokes.length + 1)): (109 * (strokes.length + 1));
     var circles = [];
     var origPaths = strokes.map(function(object){
       return Svg.parseSvgPathDesc(object["$"].d);

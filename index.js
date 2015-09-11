@@ -92,8 +92,7 @@ var Svg = {
           };
         return circle;
       }());
-    }
-    console.log(circles);
+    };
 
     var lines = [
       {

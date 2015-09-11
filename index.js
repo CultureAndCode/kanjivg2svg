@@ -36,8 +36,8 @@ program
 
 var Svg = {
   buildFrames: function(svg, options, callback){
-    var strokes = Svg.getPathsFromObject(svg.svg.g[0]);
-    var strokeCount = strokes.length + 1;
+    var strokes = Svg.getPathsFromObject(svg);
+    var strokeCount = strokes.length;
     var height = options.height ? options.height : 109;
     var width = options.width ? (options.width * strokeCount): (109 * strokeCount);
     var circles = [];
@@ -46,18 +46,54 @@ var Svg = {
     });
 
     var paths = [];
+    var count = 0;
     for(obj in origPaths){
-      paths.push(function(){
-        var descString = "";
-        for(str in origPaths[obj]){
-          descString += origPaths[obj][str][0] + " " + origPaths[obj][str][1].join(" ")
-        }
-        return {'$': {
-          d: descString,
-          style: options.lineStyle
-        }};
-      }());
+      for (var i = 0; i < (parseInt(obj) + 1); i++){
+        var style = (i < obj) ? options.prevStrokeLineStyle : options.lineStyle;
+        paths.push(function(){
+          var descString = "";
+          for(str in origPaths[i]){
+            if (origPaths[i][str][0] === "M"){
+              var relX = origPaths[i][str][1][0] + (obj * (width / strokeCount));
+              var relY = origPaths[i][str][1][1];
+              descString += "M " + relX + " " + relY + " ";
+            } else if (origPaths[i][str][0] === "C"){
+              var cPath = origPaths[i][str][1].slice(0);
+              for (var x = 0; x < 5; x += 2){
+                var relX = cPath[x] + (obj * (width / strokeCount));
+                cPath[x] = parseFloat(cPath[x] + (obj * (width / strokeCount)));
+              }
+              descString += origPaths[i][str][0] + " " + cPath.join(" ") + " ";
+              // console.log(descString)
+            } else if (origPaths[i][str][0] === "c"){
+              descString += origPaths[i][str][0] + " " + origPaths[i][str][1].join(" ") + " ";
+            }
+          }
+          return {'$': {
+            d: descString,
+            style: style
+          }};
+        }());
+      };
     };
+
+    for(obj in origPaths){
+      var cx = origPaths[obj][0][1][0] + (obj * (width / strokeCount));
+      var cy = origPaths[obj][0][1][1];
+      circles.push(function(f){
+        var circle = {'$': {
+              cx: cx,
+              cy: cy,
+              r: options.circle.radius,
+              'stroke-width': options.circle['stroke-width'],
+              fill: options.circle.fill,
+              opacity: options.circle.opacity
+            }
+          };
+        return circle;
+      }());
+    }
+    console.log(circles);
 
     var lines = [
       {
@@ -160,7 +196,7 @@ var Svg = {
                                           .filter(function(n){return n});
                             });
     var pathObjArr = pathDVals.map(function(val){
-      var obj = [val[0], val[1].split(",")];
+      var obj = [val[0], val[1].split(",").map(function(v){return parseFloat(v)})];
       return obj;
     });
     return pathObjArr;
@@ -169,7 +205,7 @@ var Svg = {
     // for(value in object){
     //   console.log(object[value].length);
     // }
-    return object.g[0].path;
+    return object.svg.g[0].g[0].path;
   },
   getSvg: function(file, callback){
     fs.readFile(file, function(err, data){
@@ -187,9 +223,15 @@ var options = {
     width: 109,
     rows: 1,
     lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
-    prevStrokeLineStyle: "fill:none;stroke:#888;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
+    prevStrokeLineStyle: "fill:none;stroke:#999;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
     borderlineStyle: "stroke:#ccc;stroke-width:1",
-    graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:1 8"
+    graphLineStyle: "stroke:#ddd;stroke-width:2;stroke-dasharray:2 5",
+    circle: {
+      radius: 5,
+      'stroke-width': 0,
+      fill: "#FF2A00",
+      opacity: 0.7
+    }
   }
 };
 

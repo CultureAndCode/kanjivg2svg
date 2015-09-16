@@ -197,7 +197,8 @@ var Svg = {
                             });
     var pathObjArr = pathDVals.map(function(val){
       var obj = [val[0], val[1]
-                              .replace(/(\,|\s)/g, ',')
+                              .replace(/(\-)/g, ',-')
+                              .replace(/(\s)/g, ',')
                               .split(/(\,)/g)
                               .filter(function(n){
                                   if(n == ','){
@@ -207,7 +208,6 @@ var Svg = {
                                 })
                               .map(function(v){return parseFloat(v)})
                 ];
-      console.log(obj)
       return obj;
     });
     return pathObjArr;
@@ -233,7 +233,7 @@ var Svg = {
 };
 
 var options = {
-  cwd: './kanji/',//program.dir,
+  cwd: program.dir,
   frame: {
     height: 109,
     width: 109,
@@ -253,19 +253,17 @@ var options = {
 
 glob("*.svg", options, function(err, files){
   for (var file in files){
-    if(files[file] === "05927.svg"){
-      var fileName = files[file];
-      Svg.getSvg(options.cwd + fileName, function(svg){
-        Svg.buildFrames(svg, options.frame, function(data){
-          var xml = builder.buildObject(data);
-          fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
-            if (err) {
-              console.log(err);
-            }
-          });
+    var fileName = files[file];
+    Svg.getSvg(options.cwd + fileName, function(svg){
+      Svg.buildFrames(svg, options.frame, function(data){
+        var xml = builder.buildObject(data);
+        fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
+          if (err) {
+            console.log(err);
+          }
         });
       });
-    }
+    });
   }
 });
 

@@ -29,7 +29,7 @@ program
   .version('0.0.1')
   .usage('-d <dir> -type [type]')
   // .usage('[-d <dir> | -f <file>] -type [type]') //Reserved for future use
-  // .option('-f, --file <file>', 'KanjiVG SVG file')
+  .option('-f, --file <file>', 'KanjiVG SVG file')
   .option('-d, --dir <dir>', 'KanjiVG SVG directory')
   .option('-t --type [type]', 'SVG type', /^(frames|animated|numbers)$/i, 'frames')
   .parse(process.argv);
@@ -233,7 +233,14 @@ var Svg = {
 };
 
 var options = {
-  cwd: program.dir,
+  cwd: function(){
+    if(program.dir){
+      return program.dir;
+    } else {
+      return process.cwd();
+    }
+  }(),
+  outputPath: './svgs/',
   frame: {
     height: 109,
     width: 109,
@@ -251,20 +258,39 @@ var options = {
   }
 };
 
-glob("*.svg", options, function(err, files){
-  for (var file in files){
-    var fileName = files[file];
-    Svg.getSvg(options.cwd + fileName, function(svg){
-      Svg.buildFrames(svg, options.frame, function(data){
-        var xml = builder.buildObject(data);
-        fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
-          if (err) {
-            console.log(err);
-          }
-        });
+// glob("*.svg", options, function(err, files){
+//   for (var file in files){
+//     if(files[file] === "07f45.svg"){
+//       var fileName = files[file];
+//       Svg.getSvg(options.cwd + fileName, function(svg){
+//         Svg.buildFrames(svg, options.frame, function(data){
+//           var xml = builder.buildObject(data);
+//           fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
+//             if (err) {
+//               console.log(err);
+//             }
+//           });
+//         });
+//       });
+//     }
+//   }
+// });
+
+if(program.file) {
+  var fileName = program.file.replace(/^.*[\\\/]/, '').split('.')[0];
+  var pType = program.type ? program.type : 'frames';
+  var filePath = options.outputPath + fileName + '_' + pType;
+  Svg.getSvg(program.file, function(svg){
+    Svg.buildFrames(svg, options.frame, function(data){
+      var xml = builder.buildObject(data);
+      fs.writeFile(filePath + '.svg', xml, function(err) {
+        if(err){
+          console.log(err);
+        }
+        console.log(filePath + " written to file");
       });
     });
-  }
-});
+  });
+}
 
 module.exports = Svg;

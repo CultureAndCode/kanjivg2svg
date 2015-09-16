@@ -6,9 +6,9 @@ This is a NodeJS fork of the original Ruby 1.9 script that takes stroke order da
 Usage
 -----
 
-    $ node kanjivg2svg -d path/to/kanji/ -t [frames|animated|numbers]
+    $ node kanjivg2svg -f path/to/kanji/ -t [frames|animated|numbers]
 
-You can change the output type by setting the second argument. If not set it will default to 'frames'. The animated and numbers are less perfected compared to the frames output.
+You can change the output type by setting the second argument. If not set it will default to 'frames'. The animated and numbers are not yet implemented.
 
 Why?
 ----
@@ -19,6 +19,7 @@ License
 -------
 
 By Kim Ahlström <kim.ahlstrom@gmail.com>
+Original ruby repo: [https://github.com/Kimtaro/kanjivg2svg](https://github.com/Kimtaro/kanjivg2svg)
 
 Fork by Matthew @matthewbadeau
 

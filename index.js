@@ -42,7 +42,7 @@ var Svg = {
     var width = options.width ? (options.width * strokeCount): (109 * strokeCount);
     var circles = [];
     var origPaths = strokes.map(function(object){
-      return Svg.parseSvgPathDesc(object["$"].d);
+      return Svg.parseSvgPathDesc(object);
     });
 
     var paths = [];
@@ -200,11 +200,17 @@ var Svg = {
     });
     return pathObjArr;
   },
-  getPathsFromObject: function(object){
-    // for(value in object){
-    //   console.log(object[value].length);
-    // }
-    return object.svg.g[0].g[0].path;
+  getPathsFromObject: function(obj){
+    var keys = [];
+    for(o in obj){
+      if(obj[o].hasOwnProperty("d")){
+        keys.push(obj[o].d);
+      } else if(typeof obj[o] === 'object') {
+        keys.push(Svg.getPathsFromObject(obj[o]));
+      }
+    };
+    return keys.concat.apply([], keys);
+    // return obj.svg.g[0].g[0].path;
   },
   getSvg: function(file, callback){
     fs.readFile(file, function(err, data){
@@ -236,7 +242,7 @@ var options = {
 
 glob("*.svg", options, function(err, files){
   for (var file in files){
-    if(files[file] === "05927.svg"){
+    if(files[file] === "0f9ab.svg"){
       var fileName = files[file];
       Svg.getSvg(options.cwd + fileName, function(svg){
         Svg.buildFrames(svg, options.frame, function(data){

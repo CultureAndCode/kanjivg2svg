@@ -186,16 +186,28 @@ var Svg = {
     // }
     var pathDRegex = /(?=[MZLHVCSQTAmzlhvcsqta])/;
     var pathDVals = descString
-                      .replace(/(\-)/g, ",-") //Some negative values aren't separated from the previous value
+                      .replace(/(\-)/, ",-")
                       .split(pathDRegex)
                       .filter(function(n){return n})
                       .map(function(value){
-                            return pathDesc = value
-                                          .split(/([a-zA-Z])/)
-                                          .filter(function(n){return n});
+                            var val = value
+                                        .split(/([a-zA-Z])/g)
+                                        .filter(function(n){return n});
+                            return val;      
                             });
     var pathObjArr = pathDVals.map(function(val){
-      var obj = [val[0], val[1].split(",").map(function(v){return parseFloat(v)})];
+      var obj = [val[0], val[1]
+                              .replace(/(\,|\s)/g, ',')
+                              .split(/(\,)/g)
+                              .filter(function(n){
+                                  if(n == ','){
+                                    return;
+                                  }
+                                  return n;
+                                })
+                              .map(function(v){return parseFloat(v)})
+                ];
+      console.log(obj)
       return obj;
     });
     return pathObjArr;
@@ -210,7 +222,6 @@ var Svg = {
       }
     };
     return keys.concat.apply([], keys);
-    // return obj.svg.g[0].g[0].path;
   },
   getSvg: function(file, callback){
     fs.readFile(file, function(err, data){
@@ -242,7 +253,7 @@ var options = {
 
 glob("*.svg", options, function(err, files){
   for (var file in files){
-    if(files[file] === "0f9ab.svg"){
+    if(files[file] === "05927.svg"){
       var fileName = files[file];
       Svg.getSvg(options.cwd + fileName, function(svg){
         Svg.buildFrames(svg, options.frame, function(data){

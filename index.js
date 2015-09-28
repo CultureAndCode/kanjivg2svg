@@ -6,10 +6,6 @@ var program = require('commander'),
     xml2js = require('xml2js');
 
 var parserOptions = {
-  // xmlns: true,
-  // explicitCharkey: true,
-  // stripPrefix: false,
-  // explicitChildren: false,
   preserveChildrenOrder: true
 };
 var builderOptions = {
@@ -31,7 +27,8 @@ program
   // .usage('[-d <dir> | -f <file>] -type [type]') //Reserved for future use
   .option('-f, --file <file>', 'KanjiVG SVG file')
   .option('-d, --dir <dir>', 'KanjiVG SVG directory')
-  .option('-t --type [type]', 'SVG type', /^(frames|animated|numbers)$/i, 'frames')
+  .option('-t --type [type]', 'SVG type', /^(frames|animated|numbers|highlight)$/i, 'frames')
+  .option('-n --num [num]', 'Highlighted stroke number', /^(\d{1,2})$/i, 1)
   .parse(process.argv);
 
 var Svg = {
@@ -64,7 +61,6 @@ var Svg = {
                 cPath[x] = parseFloat(cPath[x] + (obj * (width / strokeCount)));
               }
               descString += origPaths[i][str][0] + " " + cPath.join(" ") + " ";
-              // console.log(descString)
             } else if (origPaths[i][str][0] === "c"){
               descString += origPaths[i][str][0] + " " + origPaths[i][str][1].join(" ") + " ";
             }
@@ -175,6 +171,59 @@ var Svg = {
               circle: circles
             });
   },
+  highlightedStroke: function(svg, stroke, options, callback, err){
+    var strokes = Svg.getPathsFromObject(svg);
+    var strokeCount = strokes.length;
+    var height = options.height;
+    var width = options.width;
+    var circles = [];
+    var origPaths = strokes.map(function(object){
+      return Svg.parseSvgPathDesc(object);
+    });
+
+    if(stroke > origPaths.length){
+      stroke = 1;
+    }
+
+    var paths = [];
+    
+    for(obj in origPaths){
+        var style = (obj == stroke - 1) ? options.highlightLineStyle : options.lineStyle;
+        paths.push(function(){
+          var descString = "";
+          for(str in origPaths[obj]){
+            if (origPaths[obj][str][0] === "M"){
+              var relX = origPaths[obj][str][1][0];
+              var relY = origPaths[obj][str][1][1];
+              descString += "M " + relX + " " + relY + " ";
+            } else if (origPaths[obj][str][0] === "C"){
+              var cPath = origPaths[obj][str][1].slice(0);
+              for (var x = 0; x < 5; x += 2){
+                var relX = cPath[x];
+                cPath[x] = parseFloat(cPath[x]);
+              }
+              descString += origPaths[obj][str][0] + " " + cPath.join(" ") + " ";
+            } else if (origPaths[obj][str][0] === "c"){
+              descString += origPaths[obj][str][0] + " " + origPaths[obj][str][1].join(" ") + " ";
+            }
+          }
+          return {'$': {
+            d: descString,
+            style: style
+          }};
+        }());
+    };
+
+    callback({
+              '$': {
+                xmlns: 'http://www.w3.org/2000/svg',
+                height: height,
+                width: width,
+                viewBox: '0 0 ' + width + 'px ' + height + 'px'
+              },
+              path: paths
+            });
+  },
   parseSvgPathDesc: function(descString){
     // Give this arbitrary string:
     // M19.38,48.25c1.49,0.51,5.03,0.89,7.6,0.49C41.12,46.5,63,43,77.19,42.44c2.7-0.11,4.87-0.06,7.31,0.33
@@ -255,33 +304,44 @@ var options = {
       fill: "#FF2A00",
       opacity: 0.7
     }
+  },
+  highlight: {
+    height: 109,
+    width: 109,
+    lineStyle: "fill:none;stroke:black;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;",
+    highlightLineStyle: "fill:none;stroke:#F00;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;"
   }
 };
 
-// glob("*.svg", options, function(err, files){
-//   for (var file in files){
-//     if(files[file] === "07f45.svg"){
-//       var fileName = files[file];
-//       Svg.getSvg(options.cwd + fileName, function(svg){
-//         Svg.buildFrames(svg, options.frame, function(data){
-//           var xml = builder.buildObject(data);
-//           fs.writeFile('./svgs/test_' + fileName, xml, function(err) {
-//             if (err) {
-//               console.log(err);
-//             }
-//           });
-//         });
-//       });
-//     }
-//   }
-// });
-
-if(program.file) {
+if(program.file && (program.type === 'frames') ) {
   var fileName = program.file.replace(/^.*[\\\/]/, '').split('.')[0];
   var pType = program.type ? program.type : 'frames';
   var filePath = options.outputPath + fileName + '_' + pType;
   Svg.getSvg(program.file, function(svg){
-    Svg.buildFrames(svg, options.frame, function(data){
+    Svg.buildFrames(svg, options.frame, function(data, err){
+      if (err){
+        throw(err);
+      }
+      var xml = builder.buildObject(data);
+      fs.writeFile(filePath + '.svg', xml, function(err) {
+        if(err){
+          console.log(err);
+        }
+        console.log(filePath + " written to file");
+      });
+    });
+  });
+}
+
+if(program.file && (program.type === 'highlight' && program.num !== 'undefined')) {
+  var fileName = program.file.replace(/^.*[\\\/]/, '').split('.')[0];
+  var pType = program.type ? program.type : 'frames';
+  var filePath = options.outputPath + fileName + '_' + pType;
+  Svg.getSvg(program.file, function(svg){
+    Svg.highlightedStroke(svg, program.num, options.highlight, function(data, err){
+      if (err){
+        throw(err);
+      }
       var xml = builder.buildObject(data);
       fs.writeFile(filePath + '.svg', xml, function(err) {
         if(err){
